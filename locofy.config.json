@@ -1,8 +1,8 @@
 {
   "framework": "next",
   "components": [
-    "components/Navbar.jsx",
-    "components/Button.jsx",
-    "components/Card.jsx"
+    "app/components/Navbar.jsx",
+    "app/components/Sidebar.jsx",
+    "app/components/Card.jsx"
   ]
 }
