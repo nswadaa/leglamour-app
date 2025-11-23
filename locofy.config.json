@@ -1,0 +1,8 @@
+{
+  "framework": "next",
+  "components": [
+    "components/Navbar.jsx",
+    "components/Button.jsx",
+    "components/Card.jsx"
+  ]
+}
