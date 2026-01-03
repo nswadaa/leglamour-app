@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1765103014742,
+      "tag": "0000_fat_rocket_racer",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1765211383960,
+      "tag": "0001_futuristic_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1765211853150,
+      "tag": "0002_chubby_sasquatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1766649566895,
+      "tag": "0003_mixed_puppet_master",
+      "breakpoints": true
+    }
+  ]
+}

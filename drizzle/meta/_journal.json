@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1764225734939,
+      "tag": "0000_peaceful_misty_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1764664117324,
+      "tag": "0001_safe_green_goblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1764666570225,
+      "tag": "0002_breezy_black_crow",
+      "breakpoints": true
+    }
+  ]
+}
