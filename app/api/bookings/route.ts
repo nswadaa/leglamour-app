@@ -6,69 +6,82 @@ import { eq, and } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { userId, staffId, serviceId, date, time } = body;
+    const user = await getSessionUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!userId || !staffId || !serviceId || !date || !time) {
-      return NextResponse.json({ success: false, error: "missing fields" }, { status: 400 });
-    }
+    const { staffId, serviceId, date, time } = await req.json();
 
-    // cek slot sudah dipakai (status != cancelled)
-    const existing = await db
+    // ambil service
+    const [svc] = await db
       .select()
+      .from(services)
+      .where(eq(services.id, serviceId));
+    if (!svc)
+      return NextResponse.json({ error: "Service not found" }, { status: 404 });
+
+    const duration = svc.duration;
+
+    // ambil booking existing
+    const existing = await db
+      .select({
+        time: bookings.time,
+        duration: services.duration,
+        status: bookings.status,
+      })
       .from(bookings)
-      .where(
-        and(
-          eq(bookings.staffId, Number(staffId)),
-          eq(bookings.date, date),
-          eq(bookings.time, time)
-        )
-      );
+      .innerJoin(services, eq(services.id, bookings.serviceId))
+      .where(and(eq(bookings.staffId, staffId), eq(bookings.date, date)));
 
-    if (existing.some((e) => e.status !== "cancelled")) {
-      return NextResponse.json({ success: false, error: "Slot already booked" }, { status: 409 });
+    // cek overlap
+    const toMin = (t: string) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    const start = toMin(time);
+    const end = start + duration;
+
+    for (const b of existing) {
+      if (b.status === "cancelled") continue;
+      const s = toMin(b.time);
+      const e = s + b.duration;
+      if (start < e && end > s) {
+        return NextResponse.json(
+          { error: "Slot already booked" },
+          { status: 409 }
+        );
+      }
     }
 
-    // Ambil service
-    const svc = await db.select().from(services).where(eq(services.id, Number(serviceId)));
-    if (!svc.length) {
-      return NextResponse.json({ success: false, error: "Service not found" }, { status: 404 });
-    }
+    // DP
+    const [cfg] = await db.select().from(dpConfig).limit(1);
+    const dpAmount = cfg?.amount ?? 20000;
 
-    // Ambil DP config
-    const cfg = await db.select().from(dpConfig).limit(1);
-    const dpAmount = cfg.length ? cfg[0].amount : 20000;
+    // insert booking
+    const [bk] = await db
+      .insert(bookings)
+      .values({
+        userId: user.id,
+        staffId,
+        serviceId,
+        date,
+        time,
+        dpAmount,
+        status: "waiting_payment",
+      })
+      .returning({ id: bookings.id });
 
-    // Insert booking
-    const [bk] = await db.insert(bookings).values({
-      userId: Number(userId),
-      staffId: Number(staffId),
-      serviceId: Number(serviceId),
-      date,
-      time,
-      dpAmount,
-      status: "waiting_payment",
-    }).returning({ id: bookings.id });
-
-    // Insert payment
     await db.insert(payments).values({
       bookingId: bk.id,
       method: "qris",
       amount: dpAmount,
       paymentStatus: "pending",
-      transactionId: null,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Booking created",
-      bookingId: bk.id,
-      dpAmount,
-      servicePrice: svc[0].price
-    });
-
+    return NextResponse.json({ success: true, bookingId: bk.id });
   } catch (err) {
-    console.error("BOOKING POST ERROR:", err);
-    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+    console.error(err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

@@ -36,9 +36,10 @@ export default function DaftarPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[url('/background.png')] bg-cover bg-center">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[url('/background.png')] bg-cover bg-center relative">
+      {/* overlay */}
+      <div className="absolute inset-0 bg-black/10"></div>
       <div className="w-[380px] bg-white/50 backdrop-blur-md shadow-xl rounded-2xl p-8 text-center border border-gray-300 relative">
-
         {/* 🔙 Tombol Kembali */}
         <button
           onClick={() => router.push("/")}
@@ -47,17 +48,21 @@ export default function DaftarPage() {
           ← Kembali
         </button>
 
-        <h1 className="text-xl font-semibold mb-2 tracking-wide mt-8">DAFTAR</h1>
+        <h1 className="text-lg font-semibold tracking-wide mb-2 mt-8 text-gray-900">
+          DAFTAR
+        </h1>
 
         <p className="text-xs text-gray-600 mb-6">
-          Isi data dengan benar untuk membuat akun.<br />
-          Simpan Username dan Password untuk login.<br />
+          Isi data dengan benar untuk membuat akun.
+          <br />
+          Simpan Username dan Password untuk login.
+          <br />
         </p>
 
         {/* Nama */}
         <input
           placeholder="Nama"
-          className="w-full px-4 py-2 rounded-full border border-gray-300 text-sm outline-none mb-3 focus:ring-2 focus:ring-gray-400"
+          className="w-full px-4 py-2 rounded-full border border-gray-300 text-sm outline-none mb-3 focus:ring-2 focus:ring-gray-400 text-gray-900"
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
 
@@ -66,7 +71,7 @@ export default function DaftarPage() {
           <input
             placeholder="Password"
             type={showPass ? "text" : "password"}
-            className="w-full px-4 py-2 rounded-full border border-gray-300 text-sm outline-none focus:ring-2 focus:ring-gray-400 pr-10"
+            className="w-full px-4 py-2 rounded-full border border-gray-300 text-sm outline-none focus:ring-2 focus:ring-gray-400 pr-10 text-gray-900"
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
 
@@ -78,19 +83,41 @@ export default function DaftarPage() {
           >
             {showPass ? (
               // Mata terbuka
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
               </svg>
             ) : (
               // Mata tertutup
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 013.422-4.927M6.18 6.18A9.959 9.959 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.043 5.225M3 3l18 18" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 013.422-4.927M6.18 6.18A9.959 9.959 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.043 5.225M3 3l18 18"
+                />
               </svg>
             )}
           </button>
@@ -99,7 +126,7 @@ export default function DaftarPage() {
         {/* No HP */}
         <input
           placeholder="No. HP"
-          className="w-full px-4 py-2 rounded-full border border-gray-300 text-sm outline-none mb-4 focus:ring-2 focus:ring-gray-400"
+          className="w-full px-4 py-2 rounded-full border border-gray-300 text-sm outline-none mb-4 focus:ring-2 focus:ring-gray-400 text-gray-900"
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
         />
 
@@ -112,7 +139,10 @@ export default function DaftarPage() {
         </button>
 
         <p className="text-[11px] text-gray-600 mt-4">
-          Sudah punya akun? <a href="/auth/login" className="text-gray-900 underline">Login</a>
+          Sudah punya akun?{" "}
+          <a href="/auth/login" className="text-gray-900 underline">
+            Login
+          </a>
         </p>
 
         {msg && <p className="text-sm text-gray-900 font-medium mt-3">{msg}</p>}

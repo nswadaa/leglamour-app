@@ -6,6 +6,7 @@ import {
   timestamp,
   date,
   time,
+  datetime, // ⬅️ WAJIB ADA
 } from "drizzle-orm/mysql-core";
 
 // ===============================
@@ -65,7 +66,7 @@ export const services = mysqlTable("services", {
 // ===============================
 export const timeSlots = mysqlTable("time_slots", {
   id: int("id").primaryKey().autoincrement(),
-  time: time("time").notNull(),       // "09:00:00"
+  time: time("time").notNull(), // "09:00:00"
   isActive: int("is_active").default(1),
 });
 
@@ -86,7 +87,7 @@ export const bookings = mysqlTable("bookings", {
   staffId: int("staff_id").notNull(),
   serviceId: int("service_id").notNull(),
   date: date("date").notNull(),
-  time: time("time").notNull(),        // start time
+  time: time("time").notNull(), // start time
   dpAmount: int("dp_amount").default(20000),
   status: mysqlEnum("status", [
     "pending",
@@ -127,4 +128,24 @@ export const reviews = mysqlTable("reviews", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Booking
+export const bookingCarts = mysqlTable("booking_carts", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
+export const bookingCartItems = mysqlTable("booking_cart_items", {
+  id: int("id").primaryKey().autoincrement(),
+
+  cartId: int("cart_id").notNull(),
+  treatmentId: int("treatment_id").notNull(),
+  staffId: int("staff_id").notNull(),
+
+  date: varchar("date", { length: 20 }).notNull(),
+  time: varchar("time", { length: 10 }).notNull(),
+
+  status: mysqlEnum("status", ["HOLD", "CONFIRMED", "EXPIRED"]).default("HOLD"),
+
+  expiresAt: datetime("expires_at"), // ⬅️ HARUS PERSIS SAMA
+});

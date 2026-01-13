@@ -7,6 +7,7 @@ import Image from "next/image";
 type Customer = {
   id: number;
   name: string;
+  phone: string | null;
   createdAt: string;
 };
 
@@ -40,7 +41,6 @@ export default function CustomersPage() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] font-serif">
       <div className="max-w-[1440px] mx-auto flex min-h-screen">
-
         {/* LEFT SIDEBAR */}
         {leftOpen && (
           <aside className="w-[260px] bg-[#D0BDAC] p-6 min-h-screen flex flex-col">
@@ -65,7 +65,9 @@ export default function CustomersPage() {
                   key={item.label}
                   onClick={() => router.push(item.path)}
                   className={`text-left px-4 py-2 rounded-lg transition ${
-                    item.path === "/admin/customers" ? "bg-white" : "hover:bg-white/50"
+                    item.path === "/admin/customers"
+                      ? "bg-white"
+                      : "hover:bg-white/50"
                   }`}
                 >
                   {item.label}
@@ -83,7 +85,6 @@ export default function CustomersPage() {
 
         {/* MAIN AREA */}
         <div className="flex-1 flex flex-col">
-
           {/* TOPBAR */}
           <header className="h-[80px] bg-white shadow flex items-center px-8">
             <button
@@ -121,7 +122,6 @@ export default function CustomersPage() {
 
           {/* CONTENT */}
           <main className="flex-1 p-8 overflow-auto">
-
             {/* NEW CUSTOMER */}
             <h2 className="text-[28px] font-semibold mb-6">New Customers</h2>
             <div className="bg-white rounded-3xl shadow-md p-8 mb-10">
@@ -146,6 +146,7 @@ export default function CustomersPage() {
             <div className="bg-white rounded-3xl shadow-md overflow-hidden">
               <div className="flex px-8 py-5 border-b">
                 <div className="flex-1 text-[18px] font-medium">Name</div>
+                <div className="flex-1 text-[18px] font-medium">Phone</div>
                 <div className="w-[100px] text-[18px] font-medium">Aksi</div>
               </div>
 
@@ -155,6 +156,25 @@ export default function CustomersPage() {
                   className="flex px-8 py-5 border-b border-gray-100 items-center"
                 >
                   <div className="flex-1 text-[16px]">{c.name}</div>
+                  {/* PHONE + WHATSAPP */}
+                  <div className="flex-1 text-[16px]">
+                    {c.phone ? (
+                      <a
+                        href={`https://wa.me/${
+                          c.phone.startsWith("62")
+                            ? c.phone
+                            : "62" + c.phone.slice(1)
+                        }`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:underline font-medium"
+                      >
+                        {c.phone}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 italic">No phone</span>
+                    )}
+                  </div>
                   <div className="w-[100px]">
                     <button
                       onClick={() => deleteCustomer(c.id)}

@@ -10,6 +10,7 @@ export async function GET() {
       .select({
         id: users.id,
         name: users.name,
+        phone: users.phone,
         createdAt: users.createdAt,
       })
       .from(users)

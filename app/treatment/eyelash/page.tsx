@@ -4,52 +4,39 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 /* ---------------------------------------
-  CONFIG / DUMMY DATA (shared dengan Nails)
+HELPERS
 ----------------------------------------*/
-const dummyBookings = [
-  { date: "20-01-2025", staff: "Owner", start: "14.00", end: "16.00" },
-  { date: "20-01-2025", staff: "Senior", start: "10.00", end: "11.00" },
-  { date: "21-01-2025", staff: "Junior", start: "13.00", end: "15.00" },
-];
+function minutesToHHMM(total: number) {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+function isTodayDDMMYYYY(dateStr: string) {
+  const today = new Date();
+  const todayStr = formatDDMMYYYY(today);
+  return dateStr === todayStr;
+}
 
-const times = [
-  "10.00","11.00","12.00","13.00","14.00","15.00",
-  "16.00","17.00","18.00","19.00","20.00","21.00"
-];
+function isPastTime(t: string, selectedDate: string | null) {
+  if (!selectedDate) return false;
 
-/* ---------------------------------------
-  Lash-specific types & services
-  (you said lashlift keratin = 1hr; adjust others as needed)
-----------------------------------------*/
-const lashTypes = [
-  "Natural",
-  "Medium",
-];
+  const today = new Date();
+  const [dd, mm, yyyy] = selectedDate.split("-");
+  const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
 
-const servicesDuration: Record<string, number> = {
-  "Belle Type Natural – 1hr": 1,
-  "Belle Medium – 2hrs": 2,
-  "Charlotte Type Natural – 1hr": 1,
-  "Charlotte Medium – 2hrs": 2,
-  "Anime Lash – 2hrs": 2,
-  "Cat Eye – 2hrs": 2,
-  "Dream Lashes – 2hrs": 2,
-  "Korean / Classic – 1hr": 1,
-  "Doll Lash – 2hrs": 2,
-  "Remove – 1hr": 1,
-  "Lashlift – 1hr": 1,
-  "Lashlift Regular – 1hr": 1,
-  "Lashlift Keratin – 1hr": 1,
-  "Lashlift Tint & Keratin – 1.5hrs": 1.5
-};
+  if (date.toDateString() !== today.toDateString()) return false;
 
-const servicesList = Object.keys(servicesDuration);
+  const [h, m] = t.split(":").map(Number);
+  const slotMinutes = h * 60 + m;
+  const nowMinutes = today.getHours() * 60 + today.getMinutes();
 
-/* ---------------------------------------
-  HELPERS
-----------------------------------------*/
+  return slotMinutes <= nowMinutes;
+}
+
 function formatDDMMYYYY(d: Date) {
-  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+  return `${String(d.getDate()).padStart(2, "0")}-${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
 function dateFromDDMMYYYY(s: string) {
@@ -62,15 +49,41 @@ function dateFromDDMMYYYY(s: string) {
 ----------------------------------------*/
 function ChevronLeftIcon({ className = "" }: { className?: string }) {
   return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M15 6L9 12L15 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 function ChevronRightIcon({ className = "" }: { className?: string }) {
   return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M9 6L15 12L9 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -91,8 +104,21 @@ function CalendarPopup({
   initialMonth: Date;
   selectedDateStr?: string | null;
 }) {
-  const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-  const daysShort = ["Sen","Sel","Rab","Kam","Jum","Sab","Min"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+  const daysShort = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
   const [current, setCurrent] = useState<Date>(initialMonth);
 
@@ -125,7 +151,9 @@ function CalendarPopup({
   const rightMonth = new Date(current.getFullYear(), current.getMonth() + 1, 1);
   const rightGrid = buildMonthGrid(rightMonth);
   const today = new Date();
-  const selectedDate = selectedDateStr ? dateFromDDMMYYYY(selectedDateStr) : null;
+  const selectedDate = selectedDateStr
+    ? dateFromDDMMYYYY(selectedDateStr)
+    : null;
 
   return (
     <div className="fixed left-1/2 -translate-x-1/2 top-36 z-50">
@@ -133,7 +161,10 @@ function CalendarPopup({
         {/* LEFT MONTH */}
         <div className="w-1/2">
           <div className="flex items-center justify-between mb-3">
-            <button onClick={() => changeMonth(-1)} className="p-1 rounded hover:bg-gray-100">
+            <button
+              onClick={() => changeMonth(-1)}
+              className="p-1 rounded hover:bg-gray-100"
+            >
               <ChevronLeftIcon />
             </button>
 
@@ -145,21 +176,47 @@ function CalendarPopup({
           </div>
 
           <div className="grid grid-cols-7 text-center text-xs text-gray-500 mb-2">
-            {daysShort.map((d) => <div key={d} className="font-semibold">{d}</div>)}
+            {daysShort.map((d) => (
+              <div key={d} className="font-semibold">
+                {d}
+              </div>
+            ))}
           </div>
 
           <div className="grid grid-cols-7 gap-y-2 text-center">
             {leftGrid.map((day, i) => {
-              const isToday = day === today.getDate() && current.getMonth() === today.getMonth() && current.getFullYear() === today.getFullYear();
-              const isSelected = selectedDate ? (day === selectedDate.getDate() && current.getMonth() === selectedDate.getMonth() && current.getFullYear() === selectedDate.getFullYear()) : false;
+              const isToday =
+                day === today.getDate() &&
+                current.getMonth() === today.getMonth() &&
+                current.getFullYear() === today.getFullYear();
+              const isSelected = selectedDate
+                ? day === selectedDate.getDate() &&
+                  current.getMonth() === selectedDate.getMonth() &&
+                  current.getFullYear() === selectedDate.getFullYear()
+                : false;
 
               return (
                 <div key={i} className="flex flex-col items-center">
                   {day ? (
                     <button
-                      onClick={() => { onSelect(new Date(current.getFullYear(), current.getMonth(), day)); onClose(); }}
+                      onClick={() => {
+                        onSelect(
+                          new Date(
+                            current.getFullYear(),
+                            current.getMonth(),
+                            day
+                          )
+                        );
+                        onClose();
+                      }}
                       className={`w-9 h-9 flex items-center justify-center rounded-full text-sm
-                        ${isSelected ? 'bg-red-600 text-white font-semibold' : isToday ? 'border border-red-500 text-red-600' : 'text-gray-800 hover:bg-gray-100'}`}
+                        ${
+                          isSelected
+                            ? "bg-red-600 text-white font-semibold"
+                            : isToday
+                            ? "border border-red-500 text-red-600"
+                            : "text-gray-800 hover:bg-gray-100"
+                        }`}
                     >
                       {String(day).padStart(2, "0")}
                     </button>
@@ -179,27 +236,56 @@ function CalendarPopup({
             <div className="text-lg font-medium">
               {months[rightMonth.getMonth()]} {rightMonth.getFullYear()}
             </div>
-            <button onClick={() => changeMonth(1)} className="p-1 rounded hover:bg-gray-100">
+            <button
+              onClick={() => changeMonth(1)}
+              className="p-1 rounded hover:bg-gray-100"
+            >
               <ChevronRightIcon />
             </button>
           </div>
 
           <div className="grid grid-cols-7 text-center text-xs text-gray-500 mb-2">
-            {daysShort.map((d) => <div key={d} className="font-semibold">{d}</div>)}
+            {daysShort.map((d) => (
+              <div key={d} className="font-semibold">
+                {d}
+              </div>
+            ))}
           </div>
 
           <div className="grid grid-cols-7 gap-y-2 text-center">
             {rightGrid.map((day, i) => {
-              const isToday = day === today.getDate() && rightMonth.getMonth() === today.getMonth() && rightMonth.getFullYear() === today.getFullYear();
-              const isSelected = selectedDate ? (day === selectedDate.getDate() && rightMonth.getMonth() === selectedDate.getMonth() && rightMonth.getFullYear() === selectedDate.getFullYear()) : false;
+              const isToday =
+                day === today.getDate() &&
+                rightMonth.getMonth() === today.getMonth() &&
+                rightMonth.getFullYear() === today.getFullYear();
+              const isSelected = selectedDate
+                ? day === selectedDate.getDate() &&
+                  rightMonth.getMonth() === selectedDate.getMonth() &&
+                  rightMonth.getFullYear() === selectedDate.getFullYear()
+                : false;
 
               return (
                 <div key={i} className="flex flex-col items-center">
                   {day ? (
                     <button
-                      onClick={() => { onSelect(new Date(rightMonth.getFullYear(), rightMonth.getMonth(), day)); onClose(); }}
+                      onClick={() => {
+                        onSelect(
+                          new Date(
+                            rightMonth.getFullYear(),
+                            rightMonth.getMonth(),
+                            day
+                          )
+                        );
+                        onClose();
+                      }}
                       className={`w-9 h-9 flex items-center justify-center rounded-full text-sm
-                        ${isSelected ? 'bg-red-600 text-white font-semibold' : isToday ? 'border border-red-500 text-red-600' : 'text-gray-800 hover:bg-gray-100'}`}
+                        ${
+                          isSelected
+                            ? "bg-red-600 text-white font-semibold"
+                            : isToday
+                            ? "border border-red-500 text-red-600"
+                            : "text-gray-800 hover:bg-gray-100"
+                        }`}
                     >
                       {String(day).padStart(2, "0")}
                     </button>
@@ -220,9 +306,18 @@ function CalendarPopup({
   Main page component (Lash booking)
 ----------------------------------------*/
 export default function LashPage() {
-  const [staff, setStaff] = useState("");
-  const [type, setType] = useState("");
-  const [service, setService] = useState("");
+  const [services, setServices] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [serviceId, setServiceId] = useState<number | null>(null);
+  const [staffId, setStaffId] = useState<number | null>(null);
+  const [serviceDuration, setServiceDuration] = useState<number>(0);
+
+  const [infoTime, setInfoTime] = useState<string | null>(null);
+
+  // const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
+
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
+
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dateList, setDateList] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -248,6 +343,40 @@ export default function LashPage() {
     checkLogin();
   }, []);
 
+  useEffect(() => {
+    fetch("/api/time-slots")
+      .then((r) => r.json())
+      .then((data) => {
+        setTimeSlots(
+          data.map((t: any) => t.time.slice(0, 5)) // "10:00"
+        );
+      });
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/services?category=${encodeURIComponent("Eyelash")}`),
+      fetch("/api/staff"),
+    ])
+      .then(async ([a, b]) => {
+        if (!a.ok) throw new Error("Service API error");
+        if (!b.ok) throw new Error("Staff API error");
+
+        return Promise.all([a.json(), b.json()]);
+      })
+      .then(([s, st]) => {
+        setServices(s);
+        setStaffList(st);
+
+        setServiceId(null);
+        setServiceDuration(0);
+        setSelectedTime(null);
+      })
+      .catch((err) => {
+        console.error("FETCH INIT ERROR:", err);
+      });
+  }, []);
+
   const router = useRouter();
   const dateInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -264,57 +393,93 @@ export default function LashPage() {
     setSelectedDate(days[0]);
   }, []);
 
-  // blocked times (shared with Nails)
-  const getBlockedTimes = () => {
-    if (!staff || !selectedDate) return [];
-    const bookings = dummyBookings.filter(b => b.staff === staff && b.date === selectedDate);
-    const blocked: string[] = [];
-    bookings.forEach(b => {
-      const startHour = parseInt(b.start.split(".")[0]);
-      const endHour = parseInt(b.end.split(".")[0]);
-      for (let h = startHour; h < endHour; h++) {
-        blocked.push(`${String(h).padStart(2, "0")}.00`);
-      }
-    });
-    return blocked;
-  };
+  // useEffect(() => {
+  //   if (!staffId || !selectedDate) return;
 
-  const getAvailableTimes = () => {
-    if (!service) return times;
-    const duration = servicesDuration[service];
-    const blocked = getBlockedTimes();
-    return times.filter((t) => {
-      const start = parseInt(t.split(".")[0]);
-      // check each hour block required by duration
-      for (let i = 0; i < Math.ceil(duration); i++) {
-        const checkHour = `${String(start + i).padStart(2, "0")}.00`;
-        if (blocked.includes(checkHour)) return false;
-      }
-      if (start + duration > 22) return false;
-      return true;
-    });
-  };
+  //   fetch(`/api/bookings/blocked?staffId=${staffId}&date=${selectedDate}`)
+  //     .then((r) => r.json())
+  //     .then(setBlockedTimes);
+  // }, [staffId, selectedDate]);
 
-  const availableTimes = getAvailableTimes();
+  const selectedStartMinutes = selectedTime
+    ? (() => {
+        const [h, m] = selectedTime.split(":").map(Number);
+        return h * 60 + m;
+      })()
+    : null;
 
-  const handlePayment = () => {
-    if (!isLoggedIn) {
-      setShowLoginModal(true);
+  const selectedEndMinutes =
+    selectedStartMinutes !== null
+      ? selectedStartMinutes + serviceDuration
+      : null;
+
+  const timeSlotStates = timeSlots.map((t) => {
+    const [h, m] = t.split(":").map(Number);
+    const startMinutes = h * 60 + m;
+    const endMinutes = startMinutes + serviceDuration;
+
+    const endTime = minutesToHHMM(endMinutes);
+    const isPast = isPastTime(t, selectedDate);
+    const exceedsClose = endMinutes > 22 * 60;
+
+    // ⛔ INI KUNCI UTAMA
+    const overlapWithSelected =
+      selectedStartMinutes !== null &&
+      selectedEndMinutes !== null &&
+      startMinutes > selectedStartMinutes &&
+      startMinutes < selectedEndMinutes;
+
+    let reason = "";
+    if (overlapWithSelected) reason = "Masih dalam durasi treatment";
+    else if (exceedsClose)
+      reason = `Selesai ${endTime} (melewati jam tutup 22:00)`;
+    else if (isPast) reason = "Jam sudah lewat";
+
+    return {
+      time: t,
+      endTime,
+      disabled: isPast || exceedsClose || overlapWithSelected,
+      reason,
+    };
+  });
+
+  useEffect(() => {
+    if (!selectedTime) return;
+
+    const slot = timeSlotStates.find((t) => t.time === selectedTime);
+
+    if (slot?.disabled) {
+      setSelectedTime(null);
+    }
+  }, [serviceDuration, selectedDate]);
+
+  const handleAddToCart = async () => {
+    if (!isLoggedIn) return setShowLoginModal(true);
+
+    if (!serviceId || !staffId || !selectedDate || !selectedTime) {
+      alert("Lengkapi semua pilihan");
       return;
     }
 
-    if (!staff || !type || !service || !selectedDate || !selectedTime) {
-      alert("Lengkapi pilihan staff, type, service, tanggal, dan waktu.");
+    const res = await fetch("/api/bookings/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        treatmentId: serviceId,
+        staffId,
+        date: selectedDate,
+        time: selectedTime,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Gagal menambahkan ke cart");
       return;
     }
 
-    router.push(
-      `/payment?service=${encodeURIComponent(`${service} (${type})`)}&staff=${encodeURIComponent(
-        staff
-      )}&date=${encodeURIComponent(selectedDate)}&time=${encodeURIComponent(
-        selectedTime
-      )}&dp=20000`
-    );
+    router.push("/cart");
   };
 
   const handleCalendarSelect = (d: Date) => {
@@ -335,10 +500,7 @@ export default function LashPage() {
     <div className="w-full px-8 py-10 flex flex-col lg:flex-row justify-between gap-10 select-none">
       {/* LEFT */}
       <div className="w-full lg:w-2/3">
-        <span
-          className="cursor-pointer text-sm"
-          onClick={() => router.back()}
-        >
+        <span className="cursor-pointer text-sm" onClick={() => router.back()}>
           ‹ Kembali
         </span>
         <h2 className="text-2xl font-semibold mt-2">BOOK AN APPOINTMENT</h2>
@@ -347,16 +509,18 @@ export default function LashPage() {
           {/* Staff, Type & Service */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm mb-1 block">Lash handled by</label>
+              <label className="text-sm mb-1 block">Eyelash handled by</label>
               <select
                 className="w-full p-2 bg-white border rounded-md"
-                value={staff}
-                onChange={(e) => setStaff(e.target.value)}
+                value={staffId ?? ""}
+                onChange={(e) => setStaffId(Number(e.target.value))}
               >
                 <option value="">--Handled by--</option>
-                <option value="Owner">Owner</option>
-                <option value="Senior">Senior</option>
-                <option value="Junior">Junior</option>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -364,24 +528,20 @@ export default function LashPage() {
               <label className="text-sm mb-1 block">Type</label>
               <select
                 className="w-full p-2 bg-white border rounded-md"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              >
-                <option value="">--pilih type--</option>
-                {lashTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+                value={serviceId ?? ""}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  setServiceId(id);
 
-            <div>
-              <label className="text-sm mb-1 block">Service</label>
-              <select
-                className="w-full p-2 bg-white border rounded-md"
-                value={service}
-                onChange={(e) => setService(e.target.value)}
+                  const svc = services.find((s) => s.id === id);
+                  setServiceDuration(svc?.duration ?? 0);
+                }}
               >
-                <option value="">---Treatment Lash---</option>
-                {servicesList.map((s, i) => (
-                  <option key={i} value={s}>{s}</option>
+                <option value="">---Treatment Eyelash---</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} — {s.duration / 60} hrs
+                  </option>
                 ))}
               </select>
             </div>
@@ -398,7 +558,11 @@ export default function LashPage() {
                     key={d}
                     onClick={() => setSelectedDate(d)}
                     className={`w-12 h-12 rounded-full flex items-center justify-center text-sm border
-                      ${isActive ? "bg-red-600 text-white font-semibold" : "bg-white"}`}
+                      ${
+                        isActive
+                          ? "bg-red-600 text-white font-semibold"
+                          : "bg-white"
+                      }`}
                   >
                     {d.slice(0, 2)}
                   </button>
@@ -427,25 +591,71 @@ export default function LashPage() {
 
           {/* Time slots */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-            {availableTimes.map((t) => (
-              <button
-                key={t}
-                onClick={() => setSelectedTime(t)}
-                className={`py-2 rounded-md border text-sm
-                  ${selectedTime === t ? "bg-black text-white" : "bg-white"}`}
-              >
-                {t}
-              </button>
+            {timeSlotStates.map(({ time, endTime, disabled, reason }) => (
+              <div key={time} className="relative group">
+                <button
+                  disabled={disabled}
+                  onClick={() => !disabled && setSelectedTime(time)}
+                  className={`w-full py-2 rounded-md border text-sm transition
+          ${
+            disabled
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : selectedTime === time
+              ? "bg-black text-white"
+              : "bg-white hover:border-black"
+          }`}
+                >
+                  <div>{time}</div>
+                  {serviceDuration > 0 && (
+                    <div className="text-[10px] opacity-70">
+                      Ends at {endTime}
+                    </div>
+                  )}
+                </button>
+
+                {disabled && reason && (
+                  <>
+                    {/* DESKTOP (hover) */}
+                    <div
+                      className="absolute z-10 hidden group-hover:block 
+      -top-10 left-1/2 -translate-x-1/2
+      bg-black text-white text-xs px-2 py-1 rounded shadow"
+                    >
+                      {reason}
+                    </div>
+
+                    {/* MOBILE (tap) */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setInfoTime(infoTime === time ? null : time)
+                      }
+                      className="absolute top-1 right-1 text-[10px] bg-black text-white w-4 h-4 rounded-full flex items-center justify-center"
+                    >
+                      i
+                    </button>
+
+                    {infoTime === time && (
+                      <div
+                        className="absolute z-20 -top-12 left-1/2 -translate-x-1/2
+        bg-black text-white text-xs px-2 py-1 rounded shadow"
+                      >
+                        {reason}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             ))}
           </div>
 
           {/* Payment */}
           <div className="flex justify-end">
             <button
-              onClick={handlePayment}
+              onClick={handleAddToCart}
               className="mt-8 px-6 py-2 bg-[#8A4B20] text-white text-sm rounded-md shadow-md"
             >
-              PAYMENT
+              ADD TO CART
             </button>
           </div>
         </div>
@@ -453,10 +663,16 @@ export default function LashPage() {
 
       {/* RIGHT */}
       <div className="w-full lg:w-1/3 flex flex-col items-center">
-        <img src="/price-lash.png" className="w-[260px] rounded shadow" alt="pricelist" />
+        <img
+          src="/price-lash.png"
+          className="w-[260px] rounded shadow"
+          alt="pricelist"
+        />
         <p className="text-sm text-left mt-5 max-w-xs">
-          <span className="font-semibold">Details :</span><br />
-          Lash services are performed by Owner, Senior, or Junior — pilih siapa yang kamu percaya.
+          <span className="font-semibold">Details :</span>
+          <br />
+          Lash services are performed by Owner, Senior, or Junior — pilih siapa
+          yang kamu percaya.
         </p>
       </div>
 

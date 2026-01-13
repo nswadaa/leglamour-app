@@ -7,7 +7,19 @@ export async function POST(req: Request) {
   try {
     const { phone, password } = await req.json();
 
-    const user = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
+    if (!phone || !password) {
+      return new Response(
+        JSON.stringify({ message: "Phone dan password wajib diisi!" }),
+        { status: 400 }
+      );
+    }
+
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.phone, phone))
+      .limit(1);
+
     if (!user.length) {
       return new Response(
         JSON.stringify({ message: "Akun tidak ditemukan!" }),
@@ -23,7 +35,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ==== SET COOKIE LOGIN tanpa cookies() ====
     const userSession = JSON.stringify({
       id: user[0].id,
       name: user[0].name,
@@ -39,13 +50,14 @@ export async function POST(req: Request) {
       {
         status: 200,
         headers: {
+          "Content-Type": "application/json",
           "Set-Cookie": `session_user=${encodeURIComponent(
             userSession
-          )}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24 * 7}`,
+          )}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`,
+          // tambahkan ; Secure kalau sudah HTTPS
         },
       }
     );
-
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     return new Response(
