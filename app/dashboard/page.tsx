@@ -63,23 +63,37 @@ export default function DashboardPage() {
             </div>
 
             {/* LOGIN / LOGOUT */}
-            <div className="flex items-center gap-3">
-              {user ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#e8e8e8] flex items-center justify-center text-[#4e2d15] font-bold">
-                    {user.name?.charAt(0).toUpperCase() ?? "U"}
-                  </div>
-                  <span className="text-[#4e2d15] font-medium text-sm hidden sm:inline">
-                    Hai, {user.name}
-                  </span>
-                  <button
-                    onClick={logout}
-                    className="px-3 py-1 text-sm border rounded-full text-[#4e2d15] hover:bg-red-50 transition"
-                  >
-                    Logout
-                  </button>
-                </div>
-              ) : (
+<div className="flex items-center gap-3">
+  {user ? (
+    <div className="flex items-center gap-2 sm:gap-3">
+      {/* AVATAR */}
+      <div className="w-8 h-8 rounded-full bg-[#e8e8e8] flex items-center justify-center text-[#4e2d15] font-bold">
+        {user.name?.charAt(0).toUpperCase() ?? "U"}
+      </div>
+
+      {/* NAMA */}
+      <span className="text-[#4e2d15] font-medium text-sm hidden sm:inline">
+        Hai, {user.name}
+      </span>
+
+      {/* RIWAYAT PEMBAYARAN (BARU) */}
+      <Link
+        href="/payment-history"
+        className="px-3 py-1 text-sm border rounded-full text-[#4e2d15] hover:bg-[#f3ebe4] transition"
+      >
+        Riwayat
+      </Link>
+
+      {/* LOGOUT */}
+      <button
+        onClick={logout}
+        className="px-3 py-1 text-sm border rounded-full text-[#4e2d15] hover:bg-red-50 transition"
+      >
+        Logout
+      </button>
+    </div>
+  ) : (
+
                 <div className="flex gap-3">
                   <Link href="/auth/login" className="px-3 py-1 border rounded-full text-sm">
                     Login
@@ -93,7 +107,7 @@ export default function DashboardPage() {
           </div>
 
           {/* HERO TEXT */}
-          <div className="absolute left-4 sm:left-8 md:left-16 top-[40%] sm:top-1/2 -translate-y-1/2 max-w-xs sm:max-w-md md:max-w-lg z-20">
+          <div className="absolute left-6 sm:left-8 md:left-16 top-[50%] sm:top-1/2 -translate-y-1/2 max-w-xs sm:max-w-md md:max-w-lg z-20">
             <h1
               className="font-bold text-[#4e2d15] leading-tight"
               style={{ fontSize: "clamp(1.75rem, 4vw, 4.5rem)" }}
@@ -107,7 +121,8 @@ export default function DashboardPage() {
           </div>
 
           {/* SOSMED (responsive position) */}
-          <div className="absolute right-4 sm:right-8 md:right-12 top-[18%] sm:top-1/3 flex flex-col gap-3 z-30">
+          <div className="absolute right-7 sm:right-8 md:right-12 top-1/2 translate-y-[-35%] flex flex-col gap-3 z-30">
+
             <a
               href="https://instagram.com/leglamour.nailss"
               target="_blank"
