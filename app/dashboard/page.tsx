@@ -12,9 +12,21 @@ type User = {
   role: string;
 };
 
+type Review = {
+  id: number;
+  name: string;
+  review: string;
+  createdAt: string;
+};
+
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [cartCount, setCartCount] = useState(0);
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  const [name, setName] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -47,9 +59,56 @@ export default function DashboardPage() {
     loadCartCount();
   }, []);
 
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const res = await fetch("/api/reviews", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setReviews(data);
+      } catch (err) {
+        console.error("failed to load reviews", err);
+      }
+    };
+
+    loadReviews();
+  }, []);
+
   const logout = async () => {
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/dashboard";
+  };
+
+  const submitReview = async () => {
+    if (!name.trim() || !reviewText.trim()) {
+      alert("Nama dan review wajib diisi");
+      return;
+    }
+
+    setLoading(true);
+
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        review: reviewText,
+      }),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      alert(data.message);
+      return;
+    }
+
+    alert("Review berhasil dikirim dan menunggu persetujuan admin");
+
+    // reset form
+    setName("");
+    setReviewText("");
   };
 
   return (
@@ -85,7 +144,6 @@ export default function DashboardPage() {
                 height={36}
               />
             </div>
-
             {/* LOGIN / LOGOUT */}
             <div className="flex items-center gap-3">
               {/* CART BUTTON */}
@@ -94,22 +152,34 @@ export default function DashboardPage() {
                 className="relative p-2 rounded-full border hover:bg-[#f5f5f5] transition"
               >
                 <ShoppingCart className="w-5 h-5 text-[#4e2d15]" />
-
-                {/* BADGE JUMLAH ITEM */}
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                     {cartCount}
                   </span>
                 )}
               </Link>
+
               {user ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* AVATAR */}
                   <div className="w-8 h-8 rounded-full bg-[#e8e8e8] flex items-center justify-center text-[#4e2d15] font-bold">
                     {user.name?.charAt(0).toUpperCase() ?? "U"}
                   </div>
+
+                  {/* NAMA */}
                   <span className="text-[#4e2d15] font-medium text-sm hidden sm:inline">
                     Hai, {user.name}
                   </span>
+
+                  {/* RIWAYAT */}
+                  <Link
+                    href="/payment-history"
+                    className="px-3 py-1 text-sm border rounded-full text-[#4e2d15] hover:bg-[#f3ebe4] transition"
+                  >
+                    Riwayat
+                  </Link>
+
+                  {/* LOGOUT */}
                   <button
                     onClick={logout}
                     className="px-3 py-1 text-sm border rounded-full text-[#4e2d15] hover:bg-red-50 transition"
@@ -137,7 +207,7 @@ export default function DashboardPage() {
           </div>
 
           {/* HERO TEXT */}
-          <div className="absolute left-4 sm:left-8 md:left-16 top-[40%] sm:top-1/2 -translate-y-1/2 max-w-xs sm:max-w-md md:max-w-lg z-20">
+          <div className="absolute left-6 sm:left-8 md:left-16 top-[50%] sm:top-1/2 -translate-y-1/2 max-w-xs sm:max-w-md md:max-w-lg z-20">
             <h1
               className="font-bold text-[#4e2d15] leading-tight"
               style={{ fontSize: "clamp(1.75rem, 4vw, 4.5rem)" }}
@@ -151,7 +221,7 @@ export default function DashboardPage() {
           </div>
 
           {/* SOSMED (responsive position) */}
-          <div className="absolute right-4 sm:right-8 md:right-12 top-[18%] sm:top-1/3 flex flex-col gap-3 z-30">
+          <div className="absolute right-7 sm:right-8 md:right-12 top-1/2 translate-y-[-35%] flex flex-col gap-3 z-30">
             <a
               href="https://instagram.com/leglamour.nailss"
               target="_blank"
@@ -270,18 +340,26 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-xl mb-4">Write a review</h3>
             <label className="block text-sm mb-1">Name</label>
             <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full p-2 border rounded-lg mb-3"
               placeholder="Nama kamu"
             />
 
             <label className="block text-sm mb-1">Review</label>
             <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
               className="w-full p-3 border rounded-lg mb-4 h-28"
               placeholder="Tulis pengalamanmu..."
             />
 
-            <button className="px-6 py-2 bg-[#4e2d15] text-white rounded-full">
-              Submit
+            <button
+              onClick={submitReview}
+              disabled={loading}
+              className="px-6 py-2 bg-[#4e2d15] text-white rounded-full disabled:opacity-60"
+            >
+              {loading ? "Mengirim..." : "Submit"}
             </button>
           </div>
 
@@ -295,12 +373,18 @@ export default function DashboardPage() {
 
             {/* example short testimonials */}
             <div className="mt-6 space-y-3">
-              <blockquote className="text-sm p-3 bg-[#f8f6f4] rounded-lg">
-                "Pelayanan ramah dan hasilnya bagus!" — Rina
-              </blockquote>
-              <blockquote className="text-sm p-3 bg-[#f8f6f4] rounded-lg">
-                "Rekomendasi warna sesuai trend." — Anita
-              </blockquote>
+              {reviews.slice(0, 3).map((r) => (
+                <blockquote
+                  key={r.id}
+                  className="text-sm p-3 bg-[#f8f6f4] rounded-lg"
+                >
+                  “{r.review}” — <span className="font-medium">{r.name}</span>
+                </blockquote>
+              ))}
+
+              {reviews.length === 0 && (
+                <p className="text-sm text-gray-400">Belum ada review</p>
+              )}
             </div>
           </div>
         </section>

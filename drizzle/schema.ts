@@ -7,6 +7,9 @@ import {
   date,
   time,
   datetime, // ⬅️ WAJIB ADA
+  tinyint,
+  boolean,
+  text,
 } from "drizzle-orm/mysql-core";
 
 // ===============================
@@ -59,15 +62,17 @@ export const services = mysqlTable("services", {
   categoryId: int("category_id").notNull(),
   duration: int("duration").default(60),
   price: int("price").notNull(),
+  isActive: tinyint("is_active").notNull(), // ⬅️ BARU
 });
 
 // ===============================
 // TIME SLOTS (MASTER JAM)  ⭐ INTI
 // ===============================
+// drizzle/schema.ts
 export const timeSlots = mysqlTable("time_slots", {
   id: int("id").primaryKey().autoincrement(),
-  time: time("time").notNull(), // "09:00:00"
-  isActive: int("is_active").default(1),
+  time: time("time").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 // ===============================
@@ -122,9 +127,15 @@ export const payments = mysqlTable("payments", {
 // ===============================
 export const reviews = mysqlTable("reviews", {
   id: int("id").primaryKey().autoincrement(),
+
   name: varchar("name", { length: 255 }).notNull(),
+
   email: varchar("email", { length: 255 }).notNull(),
-  review: varchar("review", { length: 1000 }).notNull(),
+
+  review: text("review").notNull(),
+
+  isVisible: boolean("is_visible").default(true),
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 

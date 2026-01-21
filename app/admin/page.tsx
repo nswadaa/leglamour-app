@@ -8,6 +8,7 @@ type AdminUser = {
   id: number;
   name: string;
 };
+
 type StatData = {
   customers: number;
   appointments: number;
@@ -24,15 +25,16 @@ type TodayAppointment = {
 export default function AdminPage() {
   const [stats, setStats] = useState<StatData | null>(null);
   const [appointments, setAppointments] = useState<TodayAppointment[]>([]);
-
   const [admin, setAdmin] = useState<AdminUser | null | "loading">("loading");
-  const [rightOpen, setRightOpen] = useState(true);
+
   const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+
   const router = useRouter();
 
   useEffect(() => {
     const load = async () => {
-      // 1️⃣ cek admin
+      // cek admin
       const authRes = await fetch("/api/admin", { cache: "no-store" });
 
       if (authRes.status === 401) {
@@ -48,19 +50,17 @@ export default function AdminPage() {
       const authData = await authRes.json();
       setAdmin(authData.user);
 
-      // 2️⃣ ambil dashboard data
+      // ambil dashboard data
       const dashRes = await fetch("/api/admin/dashboard", {
         cache: "no-store",
       });
 
-      // 🔥 WAJIB cek status sebelum json
       if (!dashRes.ok) {
         console.error("Dashboard API error", dashRes.status);
         return;
       }
 
       const dashData = await dashRes.json();
-
       setStats(dashData.stats);
       setAppointments(dashData.todayAppointments);
     };
@@ -77,177 +77,124 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen font-serif relative bg-[#F8F3EF] opacity-100">
+    <div className="min-h-screen font-serif bg-[#FFFF]">
       <div className="max-w-[1440px] mx-auto flex min-h-screen">
-        {/* LEFT SIDEBAR */}
-        {leftOpen && (
-          <aside className="w-[260px] bg-[#CBB6A4] p-6 flex flex-col shadow-lg">
-            <Image
-              src="/367457490_818409589817476_6810223495379689772_n-removebg-preview.png"
-              alt="Logo"
-              width={120}
-              height={120}
-              className="mb-10"
-            />
-
-            <nav className="flex flex-col gap-4 text-[20px]">
-              {[
-                { label: "Dashboard admin", path: "/admin" },
-                { label: "Customers", path: "/admin/customers" },
-                { label: "Kelola Jadwal", path: "/admin/jadwal" },
-                { label: "Kelola Appointment", path: "/admin/appointment" },
-                { label: "Laporan", path: "/admin/laporan" },
-                { label: "Review", path: "/admin/review" },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => router.push(item.path)}
-                  className="text-left px-4 py-2 rounded-lg text-[#3A2E28]hover:bg-[#F8F3EF] hover:shadow transition"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </aside>
-        )}
-
         {/* MAIN AREA */}
         <div className="flex-1 flex flex-col">
-          {/* TOPBAR */}
-          <header className="h-[80px] bg-[#FAF6F2] shadow-sm flex items-center px-8">
-            <button
-              onClick={() => setLeftOpen(!leftOpen)}
-              className="text-[26px] mr-4"
-              title="Toggle Sidebar"
-            >
-              ☰
-            </button>
-
-            <h1 className="text-[22px] mr-6">Dashboard admin</h1>
-
-            <div className="flex-1 flex justify-center">
-              <input
-                className="w-[280px] h-[40px] border rounded-full px-4"
-                placeholder="Search here"
-              />
-            </div>
-
-            <button
-              onClick={() => setRightOpen(!rightOpen)}
-              className="text-[28px] px-4"
-              title="Toggle Sidebar"
-            >
-              ≡
-            </button>
-
-            <div className="flex items-center gap-2 ml-4">
-              <span>Admin</span>
-              <button
-                onClick={async () => {
-                  if (!confirm("Logout dari admin?")) return;
-
-                  await fetch("/api/logout", {
-                    method: "POST",
-                    credentials: "include", // 🔥 WAJIB
-                  });
-
-                  router.replace("/auth/login");
-
-                  router.push("/auth/login");
-                }}
-                className="text-sm px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition"
-              >
-                Logout
-              </button>
-
-              <Image
-                src="/367457490_818409589817476_6810223495379689772_n-removebg-preview.png"
-                alt="avatar"
-                width={36}
-                height={36}
-                className="rounded-full"
-              />
-            </div>
-          </header>
-
           {/* CONTENT */}
           <main className="flex flex-1 overflow-hidden">
-            {/* CENTER CONTENT */}
-            <div className="flex-1 p-8 overflow-auto">
-              {/* STAT CARDS */}
-              <div className="grid grid-cols-4 gap-6 mb-6">
+            {/* CENTER */}
+            {/* CENTER */}
+            <div className="flex-1 overflow-auto">
+              <section className="p-6">
+                {/* CARDS */}
                 {stats && (
-                  <>
-                    <StatCard
-                      title={stats?.customers?.toString() ?? "0"}
-                      subtitle="Customers"
-                    />
-                    <StatCard
-                      title={stats?.appointments?.toString() ?? "0"}
-                      subtitle="Kelola Appointment"
-                    />
-                    <StatCard
-                      title={stats?.transactions?.toString() ?? "0"}
-                      subtitle="Kelola Transaksi"
-                    />
-                    <StatCard
-                      title={stats?.transactions?.toString() ?? "0"}
-                      subtitle="Laporan"
-                      highlighted
-                    />
-                  </>
-                )}
-              </div>
-
-              {/* APPOINTMENT */}
-              <div className="bg-white rounded-xl shadow border p-5">
-                <div className="flex justify-between mb-4">
-                  <h3 className="text-[22px]">
-                    Appointment hari ini (
-                    {new Date().toLocaleDateString("id-ID", {
-                      weekday: "long",
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                    )
-                  </h3>
-                  <button className="bg-[#FDEFE3] px-3 py-1 rounded">
-                    View All »
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-4 bg-[#D0BDAC] px-4 py-2 rounded">
-                  <div>Username</div>
-                  <div>Treatment</div>
-                  <div>Jam</div>
-                  <div>Handle by</div>
-                </div>
-
-                {appointments.length === 0 && (
-                  <div className="text-center text-gray-500 py-6">
-                    Tidak ada appointment hari ini
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    {[
+                      {
+                        title: "Customers",
+                        value: stats.customers,
+                        icon: "/customers.png",
+                      },
+                      {
+                        title: "Kelola Appointment",
+                        value: stats.appointments,
+                        icon: "/appoitment.png",
+                      },
+                      {
+                        title: "Kelola Transaksi",
+                        value: stats.transactions,
+                        icon: "/payment.png",
+                      },
+                      {
+                        title: "Laporan",
+                        value: stats.transactions,
+                        icon: "/laporan.png",
+                        active: true,
+                      },
+                    ].map((c) => (
+                      <div
+                        key={c.title}
+                        className={`rounded-xl p-4 shadow ${
+                          c.active ? "bg-[#d8c6b5]" : "bg-white"
+                        }`}
+                      >
+                        <div className="text-lg font-semibold mb-2">
+                          {c.value}
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>{c.title}</span>
+                          <Image
+                            src={c.icon}
+                            alt={c.title}
+                            width={18}
+                            height={18}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                {appointments.map((item, i) => (
-                  <div key={i} className="grid grid-cols-4 px-4 py-3 border-b">
-                    <div>{item.username}</div>
-                    <div>{item.treatment}</div>
-                    <div>{item.time}</div>
-                    <div>{item.staff}</div>
+                {/* TABLE + SIDE */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* APPOINTMENT TABLE */}
+                  <div className="lg:col-span-2 bg-white rounded-xl shadow p-4">
+                    <div className="flex justify-between mb-4">
+                      <h3 className="font-semibold">Appointment hari ini</h3>
+                      <button
+                        onClick={() => router.push("/admin/appointment")}
+                        className="text-sm text-[#b08968]"
+                      >
+                        View All →
+                      </button>
+                    </div>
+
+                    <table className="w-full text-sm">
+                      <thead className="bg-[#d8c6b5]">
+                        <tr>
+                          <th className="p-2 text-left">Username</th>
+                          <th className="p-2 text-left">Treatment</th>
+                          <th className="p-2 text-left">Jam</th>
+                          <th className="p-2 text-left">Handle by</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appointments.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="p-6 text-center text-gray-400"
+                            >
+                              Belum ada appointment
+                            </td>
+                          </tr>
+                        ) : (
+                          appointments.map((item, i) => (
+                            <tr key={i} className="border-b">
+                              <td className="p-2">{item.username}</td>
+                              <td className="p-2">{item.treatment}</td>
+                              <td className="p-2">{item.time}</td>
+                              <td className="p-2">{item.staff}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
-              </div>
+
+                  {/* RIGHT SIDE MINI CARDS */}
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-xl shadow p-4 h-40">
+                      <h3 className="font-semibold mb-2">New Customers</h3>
+                    </div>
+                    <div className="bg-white rounded-xl shadow p-4 h-40">
+                      <h3 className="font-semibold mb-2">New Review</h3>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
-
-            {/* RIGHT SIDEBAR */}
-            {rightOpen && (
-              <aside className="w-[300px] bg-white border-l shadow-lg p-6 flex flex-col gap-6">
-                <SideCard title="New Customers" />
-                <SideCard title="New Review" />
-              </aside>
-            )}
           </main>
         </div>
       </div>
@@ -255,36 +202,34 @@ export default function AdminPage() {
   );
 }
 
-/* COMPONENTS */
+/* ==== COMPONENTS ==== */
 
 function StatCard({
   title,
-  subtitle,
-  highlighted,
+  label,
+  highlight,
 }: {
-  title: string;
-  subtitle: string;
-  highlighted?: boolean;
+  title: number;
+  label: string;
+  highlight?: boolean;
 }) {
   return (
     <div
-      className={`h-[110px] rounded-xl border shadow px-6 flex flex-col justify-center ${
-        highlighted ? "bg-[#D0BDAC]" : "bg-white"
+      className={`rounded-xl p-6 shadow ${
+        highlight ? "bg-[#E7D5C6]" : "bg-white"
       }`}
     >
-      <div className="text-[24px]">{title}</div>
-      <div className="text-[18px] text-gray-600">{subtitle}</div>
+      <div className="text-2xl font-semibold">{title}</div>
+      <div className="text-sm mt-1">{label}</div>
     </div>
   );
 }
 
 function SideCard({ title }: { title: string }) {
   return (
-    <div className="border rounded-xl p-4 h-[240px]">
-      <h4 className="text-[20px] mb-3">{title}</h4>
-      <div className="h-full flex items-center justify-center text-gray-400">
-        no data
-      </div>
+    <div className="border rounded-xl p-4 shadow-sm">
+      <h4 className="font-medium mb-2">{title}</h4>
+      <p className="text-sm text-gray-500">Belum ada data</p>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
 async function main() {
-  const phone = "087765221804";
+  const phone = "081270742131";
   const password = "admin123";
 
   const exist = await db.select().from(users).where(eq(users.phone, phone));

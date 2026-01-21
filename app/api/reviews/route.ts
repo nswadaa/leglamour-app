@@ -1,53 +1,39 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { reviews } from "@/drizzle/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
+/* ================= GET (PUBLIC) ================= */
 export async function GET() {
-  try {
-    const result = await db
-      .select()
-      .from(reviews)
-      .orderBy(desc(reviews.createdAt));
+  const data = await db
+    .select()
+    .from(reviews)
+    .where(eq(reviews.isVisible, true))
+    .orderBy(desc(reviews.createdAt));
 
-    return NextResponse.json(result);
-  } catch (error) {
-    console.log("REVIEWS GET ERROR:", error);
-    return NextResponse.json(
-      { message: "Failed to load reviews" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(data);
 }
 
+/* ================= POST (PUBLIC) ================= */
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
+  const { name, review } = await req.json();
 
-    const { name, email, review } = body;
+  if (!name || name.trim().length < 2) {
+    return NextResponse.json({ message: "Nama wajib diisi" }, { status: 400 });
+  }
 
-    if (!name || !email || !review) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    const result = await db
-      .insert(reviews)
-      .values({
-        name,
-        email,
-        review,
-      })
-      .returning();
-
-    return NextResponse.json(result[0]);
-  } catch (error) {
-    console.log("REVIEWS POST ERROR:", error);
+  if (!review || review.trim().length < 5) {
     return NextResponse.json(
-      { message: "Failed to submit review" },
-      { status: 500 }
+      { message: "Review terlalu pendek" },
+      { status: 400 },
     );
   }
+
+  await db.insert(reviews).values({
+    name,
+    review,
+    isVisible: false, // nunggu admin
+  });
+
+  return NextResponse.json({ message: "Review terkirim" });
 }

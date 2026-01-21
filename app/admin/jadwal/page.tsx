@@ -4,56 +4,184 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+/* ================= TYPE ================= */
 type AdminUser = {
   id: number;
   name: string;
 };
 
+type TimeSlot = {
+  id: number;
+  time: string; // "10:00"
+  status: "open" | "close";
+};
+
 export default function JadwalPage() {
-  const [admin, setAdmin] = useState<AdminUser | null | "loading">("loading");
-  const [leftOpen, setLeftOpen] = useState(true);
   const router = useRouter();
 
-  const [handleBy, setHandleBy] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [handles, setHandles] = useState<string[]>([]);
 
-  // Generate tanggal hari ini + 5 hari
+  /* ================= DATE ================= */
+  const today = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [handleBy, setHandleBy] = useState("");
+
+  /* ================= AUTH ================= */
+  const [admin, setAdmin] = useState<AdminUser | null | "loading">("loading");
+
+  /* ================= SCHEDULE ================= */
+  const [schedules, setSchedules] = useState<Record<string, TimeSlot[]>>({});
+  const times = schedules[selectedDate] || [];
+
+  /* ================= EDIT ================= */
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTime, setEditTime] = useState("");
+
+  /* ================= ADD ================= */
+  const [newTime, setNewTime] = useState("");
+
+  /* ================= DATE OPTIONS ================= */
+  const baseDate = new Date(selectedDate);
   const dateOptions = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() + i);
     return d;
   });
 
-  // 🔥 JAM DENGAN STATUS
-  const [times, setTimes] = useState(
-    [
-      "10.00","11.00","12.00","13.00",
-      "14.00","15.00","16.00","17.00",
-      "18.00","19.00","20.00","21.00"
-    ].map((t) => ({ time: t, status: "open" }))
-  );
+  /* ================= LOAD SLOTS (DB) ================= */
+  const loadSlots = async () => {
+    const res = await fetch("/api/time-slots", { cache: "no-store" });
+    const data = await res.json();
 
-  // input tambah jam
-  const [newTime, setNewTime] = useState("");
+    setSchedules({
+      [selectedDate]: data.map((t: any) => ({
+        id: t.id,
+        time: t.time.slice(0, 5),
+        status: t.isActive ? "open" : "close",
+      })),
+    });
+  };
 
-  const addTime = () => {
+  useEffect(() => {
+    loadSlots();
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const loadHandles = async () => {
+      const res = await fetch("/api/staff/handles", {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      setHandles(data.map((d: any) => d.role));
+    };
+
+    loadHandles();
+  }, []);
+
+  /* ================= ADD ================= */
+  const addTime = async () => {
     if (!newTime.trim()) return;
-    setTimes([...times, { time: newTime.trim(), status: "open" }]);
+
+    const res = await fetch("/api/time-slots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ time: `${newTime}:00` }),
+    });
+
+    if (res.status === 409) {
+      const data = await res.json();
+      alert(data.message); // "Jam sudah ada"
+      return;
+    }
+
     setNewTime("");
+    loadSlots();
   };
 
-  const updateStatus = (index: number, status: "open" | "close") => {
-    const updated = [...times];
-    updated[index].status = status;
-    setTimes(updated);
+  /* ================= TOGGLE STATUS ================= */
+  const updateStatus = async (slot: TimeSlot, status: "open" | "close") => {
+    setSchedules((prev) => ({
+      ...prev,
+      [selectedDate]: prev[selectedDate].map((t) =>
+        t.id === slot.id ? { ...t, status } : t,
+      ),
+    }));
+
+    await fetch(`/api/time-slots/${slot.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: status === "open" }),
+    });
   };
 
-  const setAllStatus = (status: "open" | "close") => {
-    const updated = times.map((t) => ({ ...t, status }));
-    setTimes(updated);
+  /* ================= SET ALL ================= */
+  const setAllStatus = async (status: "open" | "close") => {
+    await Promise.all(
+      times.map((t) =>
+        fetch(`/api/time-slots/${t.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_active: status === "open" }),
+        }),
+      ),
+    );
+
+    setSchedules((prev) => ({
+      ...prev,
+      [selectedDate]: times.map((t) => ({ ...t, status })),
+    }));
   };
 
+  /* ================= EDIT ================= */
+  const startEdit = (t: TimeSlot) => {
+    setEditingId(t.id);
+    setEditTime(t.time);
+  };
+
+  const saveEdit = async (t: TimeSlot) => {
+    if (!editTime.match(/^\d{2}:\d{2}$/)) {
+      alert("Format jam harus HH:MM");
+      return;
+    }
+
+    const newTime = editTime;
+
+    const res = await fetch(`/api/time-slots/${t.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        time: `${newTime}:00`,
+      }),
+    });
+
+    if (res.status === 409) {
+      const data = await res.json();
+      alert(data.message);
+      return;
+    }
+
+    // ✅ OPTIMISTIC UPDATE (INI KUNCINYA)
+    setSchedules((prev) => ({
+      ...prev,
+      [selectedDate]: prev[selectedDate].map((slot) =>
+        slot.id === t.id ? { ...slot, time: newTime } : slot,
+      ),
+    }));
+
+    setEditingId(null);
+    setEditTime("");
+  };
+
+  /* ================= DELETE ================= */
+  const deleteTime = async (id: number) => {
+    const ok = confirm("Yakin ingin menghapus jam ini?");
+    if (!ok) return;
+
+    await fetch(`/api/time-slots/${id}`, { method: "DELETE" });
+    loadSlots();
+  };
+
+  /* ================= AUTH ================= */
   useEffect(() => {
     const load = async () => {
       const res = await fetch("/api/admin", { cache: "no-store" });
@@ -65,183 +193,156 @@ export default function JadwalPage() {
   }, [router]);
 
   if (admin === "loading") {
-    return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
+    return (
+      <div className="h-full flex items-center justify-center">Loading…</div>
+    );
   }
 
+  /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-[#fafafa] font-serif">
-      <div className="flex">
+    <section className="p-4 sm:p-8">
+      {/* FILTER */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-8 items-center">
+        <select
+          className="border rounded-full px-5 py-2 w-full sm:w-[220px]"
+          value={handleBy}
+          onChange={(e) => setHandleBy(e.target.value)}
+        >
+          <option value="">Handles by</option>
 
-        {/* LEFT SIDEBAR */}
-        {leftOpen && (
-          <aside className="w-[260px] bg-[#D0BDAC] p-6 min-h-screen flex flex-col">
-            <Image
-              src="/367457490_818409589817476_6810223495379689772_n-removebg-preview.png"
-              alt="Logo"
-              width={120}
-              height={120}
-              className="mb-10"
-            />
+          {handles.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
 
-            <nav className="flex flex-col gap-4 text-[20px]">
-              {[
-                { label: "Dashboard admin", path: "/admin" },
-                { label: "Customers", path: "/admin/customers" },
-                { label: "Kelola Jadwal", path: "/admin/jadwal" },
-                { label: "Kelola Appointment", path: "/admin/appointment" },
-                { label: "Laporan", path: "/admin/laporan" },
-                { label: "Review", path: "/admin/review" },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => router.push(item.path)}
-                  className={`text-left px-4 py-2 rounded-lg transition ${
-                    item.path === "/admin/jadwal" ? "bg-white" : "hover:bg-white"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-
-
-            <button className="mt-auto flex items-center gap-2 text-[18px]">
-              ↪ Logout
-            </button>
-          </aside>
-        )}
-
-        {/* MAIN */}
-        <div className="flex-1 flex flex-col">
-
-          {/* TOPBAR */}
-          <header className="h-[80px] bg-white shadow flex items-center px-8 gap-4">
-            <button onClick={() => setLeftOpen(!leftOpen)} className="text-2xl">☰</button>
-            <h1 className="text-[22px]">Kelola Jadwal</h1>
-
-            <div className="flex-1 flex justify-center">
-              
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span>Admin</span>
-              <Image
-                src="/367457490_818409589817476_6810223495379689772_n-removebg-preview.png"
-                width={36}
-                height={36}
-                alt="avatar"
-                className="rounded-full"
-              />
-            </div>
-          </header>
-
-          {/* CONTENT */}
-          <main className="p-10">
-
-            {/* FILTERS */}
-            <div className="flex items-center gap-6 mb-8">
-
-              {/* Handles By */}
-              <select
-                className="border rounded-full px-6 py-2"
-                value={handleBy}
-                onChange={(e) => setHandleBy(e.target.value)}
+        {/* DATE BUTTON */}
+        <div className="flex gap-3">
+          {dateOptions.map((d, i) => {
+            const formatted = d.toISOString().split("T")[0];
+            return (
+              <button
+                key={i}
+                onClick={() => setSelectedDate(formatted)}
+                className={`w-12 h-12 rounded-full font-medium transition ${
+                  selectedDate === formatted
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
               >
-                <option value="">--Handles by--</option>
-                <option value="owner">Owner</option>
-                <option value="senior">Senior</option>
-                <option value="junior">Junior</option>
-              </select>
+                {d.getDate()}
+              </button>
+            );
+          })}
+        </div>
 
-              {/* Tanggal bulat */}
-              <div className="flex gap-3">
-                {dateOptions.map((d, i) => {
-                  const formatted = d.toISOString().split("T")[0];
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedDate(formatted)}
-                      className={`
-                        w-[55px] h-[55px] rounded-full text-[18px] font-medium transition
-                        ${selectedDate === formatted
-                          ? "bg-black text-white scale-110"
-                          : "bg-[#D0BDAC] text-black hover:bg-[#c7b39d]"}
-                      `}
-                    >
-                      {d.getDate()}
-                    </button>
-                  );
-                })}
-              </div>
+        {/* CALENDAR */}
+        <label className="relative cursor-pointer">
+          <Image src="/kalender.png" alt="calendar" width={20} height={20} />
+          <input
+            type="date"
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+        </label>
+      </div>
 
-              {/* Kalender 📅 */}
-              <div className="relative">
-                <button onClick={() => setShowCalendar(!showCalendar)} className="text-[24px]">📅</button>
-                {showCalendar && (
-                  <div className="absolute top-10 left-1 bg-white border p-2 rounded-xl shadow-lg">
-                    <input
-                      type="date"
-                      className="border rounded-lg p-2"
-                      onChange={(e) => {
-                        setSelectedDate(e.target.value);
-                        setShowCalendar(false);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
+      {/* ADD */}
+      <div className="flex flex-wrap gap-4 mb-10">
+        <input
+          className="bg-gray-200 rounded-full px-5 py-2 w-[220px]"
+          placeholder="Tambah Jam"
+          value={newTime}
+          onChange={(e) => setNewTime(e.target.value)}
+        />
 
-            {/* TAMBAH JAM */}
-            <div className="flex items-center gap-4 mb-10">
-              <input
-                className="w-[300px] h-[48px] bg-gray-200 rounded-full px-5"
-                placeholder="Tambah Jam"
-                value={newTime}
-                onChange={(e) => setNewTime(e.target.value)}
-              />
-              <button className="bg-gray-300 rounded-full px-6 py-2" onClick={addTime}>+ Tambah</button>
+        <button
+          onClick={addTime}
+          className="bg-gray-300 px-5 py-2 rounded-full"
+        >
+          + Tambah
+        </button>
 
-              <div className="flex items-center gap-2 ml-auto bg-gray-200 px-4 py-1 rounded-full">For All
-                <button onClick={() => setAllStatus("open")} className="bg-green-400 px-4 py-1 rounded-full text-white">open</button>
-                <button onClick={() => setAllStatus("close")} className="bg-red-500 px-4 py-1 rounded-full text-white">close</button>
-              </div>
-            </div>
-
-            {/* JAM LIST */}
-            <div className="grid grid-cols-4 gap-8">
-              {times.map((t, i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-
-                  <div className="bg-[#D0BDAC] w-[150px] py-3 rounded-xl text-center font-medium">
-                    {t.time}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => updateStatus(i, "open")}
-                      className={`px-4 py-1 rounded-full text-white ${
-                        t.status === "open" ? "bg-green-600" : "bg-green-400"
-                      }`}
-                    >
-                      open
-                    </button>
-                    <button
-                      onClick={() => updateStatus(i, "close")}
-                      className={`px-4 py-1 rounded-full text-white ${
-                        t.status === "close" ? "bg-gray-500" : "bg-red-500"
-                      }`}
-                    >
-                      close
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-          </main>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() => setAllStatus("open")}
+            className="bg-green-600 text-white px-4 py-1 rounded-full"
+          >
+            Open
+          </button>
+          <button
+            onClick={() => setAllStatus("close")}
+            className="bg-red-600 text-white px-4 py-1 rounded-full"
+          >
+            Close
+          </button>
         </div>
       </div>
-    </div>
+
+      {/* TIME LIST */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        {times.map((t) => (
+          <div key={t.id} className="flex flex-col items-center gap-3">
+            <div className="bg-white border rounded-xl w-full py-3 text-center">
+              {editingId === t.id ? (
+                <input
+                  className="w-full text-center outline-none"
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                />
+              ) : (
+                t.time
+              )}
+            </div>
+
+            <div className="flex gap-2 text-xs">
+              {editingId === t.id ? (
+                <button
+                  onClick={() => saveEdit(t)}
+                  className="px-3 py-1 rounded-full bg-blue-600 text-white"
+                >
+                  Save
+                </button>
+              ) : (
+                <button
+                  onClick={() => startEdit(t)}
+                  className="px-3 py-1 rounded-full bg-gray-300"
+                >
+                  Edit
+                </button>
+              )}
+
+              <button
+                onClick={() => deleteTime(t.id)}
+                className="px-3 py-1 rounded-full bg-red-500 text-white"
+              >
+                Delete
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => updateStatus(t, "open")}
+                className={`px-4 py-1 rounded-full text-white ${
+                  t.status === "open" ? "bg-green-600" : "bg-green-400"
+                }`}
+              >
+                open
+              </button>
+              <button
+                onClick={() => updateStatus(t, "close")}
+                className={`px-4 py-1 rounded-full text-white ${
+                  t.status === "close" ? "bg-red-600" : "bg-red-400"
+                }`}
+              >
+                close
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
